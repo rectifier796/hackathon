@@ -19,6 +19,7 @@ export const registerBook = async (req, res) => {
 
     if (book) {
       book.quantity = book.quantity + 1;
+      book.currentlyAvailable = book.currentlyAvailable + 1;
       await book.save();
       return generateResponse(
         res,
@@ -41,6 +42,8 @@ export const registerBook = async (req, res) => {
 
     const bookData = data.data.items[0];
 
+    console.log(bookData.volumeInfo.langauge);
+
     const newData = await bookModel.create({
       isbn,
       title: bookData.volumeInfo.title,
@@ -48,9 +51,10 @@ export const registerBook = async (req, res) => {
       publishedDate: bookData.volumeInfo.publishedDate,
       description: bookData.volumeInfo.description,
       quantity: 1,
+      currentlyAvailable: 1,
       thumbnail: bookData.volumeInfo.imageLinks.thumbnail,
       smallThumbnail: bookData.volumeInfo.imageLinks.smallThumbnail,
-      langauge: bookData.volumeInfo.langauge,
+      language: bookData.volumeInfo.language,
       searchInfo: bookData.searchInfo.textSnippet,
     });
 
@@ -113,8 +117,8 @@ export const syncBook = async (req, res) => {
   }
 };
 
-export const updateGenre = async(req,res)=>{
-    const { bookId, genre } = req.fields;
+export const updateGenre = async (req, res) => {
+  const { bookId, genre } = req.fields;
 
   try {
     const errors = validationResult(req);
@@ -151,42 +155,61 @@ export const updateGenre = async(req,res)=>{
     console.log(err);
     return generateResponse(res, 500, "Internal Server Error", null, false);
   }
-}
+};
 
 export const getBooksByQuery = async (req, res) => {
-    try {
-      const config = {};
-      const { title, isbn, author, keyword = "", genre, langauage } = req.query;
-      if (title) {
-        config["title"] = title;
-      }
-      if (isbn) {
-        config["isbn"] = isbn;
-      }
-      if (author) {
-        config["author"] = author;
-      }
-      if (genre) {
-        config["genre"] = genre;
-      }
-      if (langauage) {
-        config["langauage"] = langauage;
-      }
-  
-      // console.log(config);
-  
-      const allQuery = await bookModel
-        .find({
-          $or: [
-            { description: { $regex: keyword, $options: "i" } },
-            { searchInfo: { $regex: keyword, $options: "i" } }
-          ],
-        })
-        .find(config);
-  
-      return generateResponse(res, 200, "Query Data Fetched", allQuery, true);
-    } catch (err) {
-      console.log(err.message);
-      return generateResponse(res, 500, "Internal Server Error", null, false);
+  try {
+    const config = {};
+    const { title, isbn, author, keyword = "", genre, language } = req.query;
+    if (title) {
+      config["title"] = title;
     }
-  };
+    if (isbn) {
+      config["isbn"] = isbn;
+    }
+    if (author) {
+      config["author"] = author;
+    }
+    if (genre) {
+      config["genre"] = genre;
+    }
+    if (language) {
+      config["language"] = language;
+    }
+
+    // console.log(config);
+
+    const allQuery = await bookModel
+      .find({
+        $or: [
+          { description: { $regex: keyword, $options: "i" } },
+          { searchInfo: { $regex: keyword, $options: "i" } },
+        ],
+      })
+      .find(config);
+
+    return generateResponse(res, 200, "Query Data Fetched", allQuery, true);
+  } catch (err) {
+    console.log(err.message);
+    return generateResponse(res, 500, "Internal Server Error", null, false);
+  }
+};
+
+export const deleteBooks = async (req, res) => {
+  try {
+    const {bookId} = req.query;
+
+    console.log(req.query);
+
+    if (!mongoose.isValidObjectId(bookId)) {
+      return generateResponse(res, 400, "Invalid Book Id", null, false);
+    }
+
+    await bookModel.deleteOne({_id:bookId});
+
+    return generateResponse(res, 200, "Book Deleted", null, true);
+  } catch (err) {
+    console.log(err.message);
+    return generateResponse(res, 500, "Internal Server Error", null, false);
+  }
+};

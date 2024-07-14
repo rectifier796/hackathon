@@ -33,6 +33,10 @@ const bookSchema = new mongoose.Schema({
         type:Number,
         required:true,
     },
+    currentlyAvailable:{
+        type:Number,
+        required:true
+    },
     thumbnail:{
         type:String,
         default:null
@@ -43,6 +47,7 @@ const bookSchema = new mongoose.Schema({
     },
     language:{
         type:String,
+        default:null
     },
     searchInfo:{
         type:String,

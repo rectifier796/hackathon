@@ -180,11 +180,13 @@ export const loginUser = async (req, res) => {
     }
 
     const user = await userModel.findOne({ email });
+    console.log(user);
     if (!user) {
       return generateResponse(res, 400, "Invalid Credentials", null, false);
     }
 
     const isCorrect = await bcrypt.compare(password, user.password);
+    console.log(isCorrect);
     if (!isCorrect) {
       return generateResponse(res, 400, "Invalid Credentials", null, false);
     }
