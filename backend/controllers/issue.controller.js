@@ -110,6 +110,12 @@ export const returnBook = async (req, res) => {
 
       findIssueBook.isReturned = true;
 
+      const bookDetails = await bookModel.findById(findIssueBook.bookId);
+
+      bookDetails.currentlyAvailable = bookDetails.currentlyAvailable + 1;
+
+      await bookDetails.save();
+
       let fine = 0;
       if (findIssueBook.dueDate < Date.now) {
         fine =
@@ -161,15 +167,15 @@ export const getIssueByUser = async (req, res) => {
 export const getFine = async (req, res) => {
   try {
     const userId = req.userId;
-console.log(userId);
+    console.log(userId);
     let sum = 0;
-    const d = await issueModel.find({userId, isFinePaid:false});
+    const d = await issueModel.find({ userId, isFinePaid:false});
 
-    d.map((e)=>{
-        sum+=e.fine;
-    })
+    d.map((e) => {
+      sum += e.fine;
+    });
 
-    console.log(d);
+    // console.log(d);
 
     return generateResponse(
       res,
@@ -183,3 +189,33 @@ console.log(userId);
     return generateResponse(res, 500, "Internal Server Error", null, false);
   }
 };
+
+
+export const updateFineDetails = async (req, res) => {
+    try {
+      const {issueId} = req.fields;
+    //   console.log(userId);
+      const details = await issueModel.findById(issueId);
+
+      if (!details) {
+        return generateResponse(res, 400, "Details Not Found", null, false);
+      }
+  
+      details.fine = 0;
+      details.isFinePaid = true;
+
+      await details.save();
+  
+      return generateResponse(
+        res,
+        200,
+        "Fine Details Fetched",
+        details,
+        true
+      );
+    } catch (err) {
+      console.log(err);
+      return generateResponse(res, 500, "Internal Server Error", null, false);
+    }
+  };
+  

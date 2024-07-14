@@ -3,6 +3,7 @@ import { generateResponse } from "../helpers/response.helper.js";
 import axios from "axios";
 import bookModel from "../model/book.model.js";
 import mongoose from "mongoose";
+import issueModel from "../model/issue.model.js";
 
 export const registerBook = async (req, res) => {
   const { isbn } = req.fields;
@@ -195,9 +196,30 @@ export const getBooksByQuery = async (req, res) => {
   }
 };
 
+export const getBookById = async (req, res) => {
+  try {
+    const { bookId } = req.query;
+
+    if (!bookId) {
+      return generateResponse(res, 400, "BookId is required", null, false);
+    }
+
+    const book = await bookModel.findById(bookId);
+
+    if (!book) {
+      return generateResponse(res, 400, "No Book Found", null, false);
+    }
+
+    return generateResponse(res, 200, "Data Fetched", book, true);
+  } catch (err) {
+    console.log(err.message);
+    return generateResponse(res, 500, "Internal Server Error", null, false);
+  }
+};
+
 export const deleteBooks = async (req, res) => {
   try {
-    const {bookId} = req.query;
+    const { bookId } = req.query;
 
     console.log(req.query);
 
@@ -205,11 +227,81 @@ export const deleteBooks = async (req, res) => {
       return generateResponse(res, 400, "Invalid Book Id", null, false);
     }
 
-    await bookModel.deleteOne({_id:bookId});
+    await bookModel.deleteOne({ _id: bookId });
 
     return generateResponse(res, 200, "Book Deleted", null, true);
   } catch (err) {
     console.log(err.message);
     return generateResponse(res, 500, "Internal Server Error", null, false);
   }
+};
+
+export const decreaseBookCount = async (req, res) => {
+  const { bookId } = req.fields;
+
+  try {
+    if (!mongoose.isValidObjectId(bookId)) {
+      return generateResponse(res, 400, "Invalid Book Id", null, false);
+    }
+
+    const bookDetails = await bookModel.findById(bookId);
+
+    if (!bookDetails) {
+      return generateResponse(res, 400, "Book Not Found", null, false);
+    }
+
+    bookDetails.quantity = bookDetails.quantity - 1;
+    bookDetails.currentlyAvailable = bookDetails.currentlyAvailable - 1;
+
+    await bookDetails.save();
+
+    return generateResponse(res, 200, "Book Count Updated", null, true);
+  } catch (err) {
+    console.log(err.message);
+    return generateResponse(res, 500, "Internal Server Error", null, false);
+  }
+};
+
+export const trendingBook = async (req, res) => {
+  try {
+    const data = await issueModel
+      .aggregate([
+        {
+          $group: {
+            _id: { bookId: "$bookId" },
+            count: { $sum: 1 },
+          },
+        },
+        {
+          $sort: { count: -1 },
+        },
+      ])
+      .limit(10);
+
+    // console.log(data);
+
+    return generateResponse(res, 200, "Trending Section", data, true);
+  } catch (err) {
+    console.log(err.message);
+    return generateResponse(res, 500, "Internal Server Error", null, false);
+  }
+};
+
+export const recomendedSystemByAuthor = async (req, res) => {
+//   try {
+
+//     const userId = req.userId;
+
+//     const issueData = await issueModel.find({userId}).sort({updated_at : -1}).populate("bookId").limit(3);
+
+//     const author = issueData.map((e)=> {return e.bookId.author});
+
+//     const requiredData = await bookModel.find()
+
+//     return generateResponse(res, 200, "Recommended System", author, true);
+
+//   } catch (err) {
+//     console.log(err.message);
+//     return generateResponse(res, 500, "Internal Server Error", null, false);
+//   }
 };
