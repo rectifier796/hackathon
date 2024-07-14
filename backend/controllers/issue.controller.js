@@ -155,7 +155,7 @@ export const getIssueByUser = async (req, res) => {
   try {
     const userId = req.userId;
 
-    const details = await issueModel.find({ userId });
+    const details = await issueModel.find({ userId }).populate("bookId");
 
     return generateResponse(res, 200, "Issue Details Fetched", details, true);
   } catch (err) {
